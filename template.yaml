@@ -3,46 +3,79 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   tesla-battery-platform
 
-  Sample SAM Template for tesla-battery-platform
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 100
     MemorySize: 128
-
     Tracing: Active
-    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
       LogFormat: JSON
   Api:
     TracingEnabled: true
+
 Resources:
+  # ----------------------------------------------------------------
+  # 1. DynamoDB Table
+  # ----------------------------------------------------------------
+  BatteryDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BatteryData
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: battery_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: battery_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  # ----------------------------------------------------------------
+  # 2. Lambda Function
+  # ----------------------------------------------------------------
   HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: hello_world/
       Handler: app.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.11
       Architectures:
-      - x86_64
+        - x86_64
+
+      # Give the Lambda function an API Gateway event
       Events:
         HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Type: Api
           Properties:
             Path: /hello
             Method: get
 
+      # Grant Lambda CRUD permissions on our DynamoDB table
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BatteryDataTable
+
+      # Pass the table name to the Lambda as an environment variable
+      Environment:
+        Variables:
+          BATTERY_TABLE_NAME: !Ref BatteryDataTable
+
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   HelloWorldApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+
   HelloWorldFunction:
     Description: Hello World Lambda Function ARN
     Value: !GetAtt HelloWorldFunction.Arn
+
   HelloWorldFunctionIamRole:
     Description: Implicit IAM Role created for Hello World function
     Value: !GetAtt HelloWorldFunctionRole.Arn
+
+  BatteryTableName:
+    Description: "Name of the DynamoDB Table for battery data"
+    Value: !Ref BatteryDataTable

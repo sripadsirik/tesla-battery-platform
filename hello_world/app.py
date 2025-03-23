@@ -1,42 +1,51 @@
+import os
 import json
+import boto3
+from datetime import datetime, timezone
+from decimal import Decimal
 
-# import requests
+def get_dynamodb_client():
+    if 'AWS_SAM_LOCAL' in os.environ:
+        print("Using DynamoDB Local endpoint")
+        return boto3.resource('dynamodb',
+                              endpoint_url='http://host.docker.internal:8000',
+                              region_name='us-east-2',
+                              aws_access_key_id='dummy',
+                              aws_secret_access_key='dummy')
+    print("Using remote AWS DynamoDB")
+    return boto3.resource('dynamodb', region_name='us-east-2')
 
+
+
+dynamodb = get_dynamodb_client()
 
 def lambda_handler(event, context):
-    """Sample pure Lambda function
+    try:
+        # Get the table name from environment variable
+        table_name = os.environ.get('BATTERY_TABLE_NAME')  # Changed from 'BatteryData'
+        if not table_name:
+            raise ValueError("BATTERY_TABLE_NAME environment variable is not set")
+            
+        table = dynamodb.Table(table_name)
 
-    Parameters
-    ----------
-    event: dict, required
-        API Gateway Lambda Proxy Input Format
+        battery_id = "battery-1234"
+        timestamp = datetime.now(timezone.utc).isoformat()
 
-        Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+        item = {
+            "battery_id": battery_id,
+            "timestamp": timestamp,
+            "state_of_charge": Decimal("85.0"),
+            "temperature": Decimal("35.2")
+        }
 
-    context: object, required
-        Lambda Context runtime methods and attributes
+        table.put_item(Item=item)
 
-        Context doc: https://docs.aws.amazon.com/lambda/latest/dg/python-context-object.html
-
-    Returns
-    ------
-    API Gateway Lambda Proxy Output Format: dict
-
-        Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
-    """
-
-    # try:
-    #     ip = requests.get("http://checkip.amazonaws.com/")
-    # except requests.RequestException as e:
-    #     # Send some context about this error to Lambda Logs
-    #     print(e)
-
-    #     raise e
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "message": "hello world",
-            # "location": ip.text.replace("\n", "")
-        }),
-    }
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"message": "Item saved successfully!", "item": item}, default=str)
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
