@@ -36,21 +36,21 @@ Resources:
   # ----------------------------------------------------------------
   # 2. Lambda Function
   # ----------------------------------------------------------------
-  HelloWorldFunction:
+  BatteryDataFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: hello_world/
+      CodeUri: battery_data/
       Handler: app.lambda_handler
       Runtime: python3.11
       Architectures:
         - x86_64
 
-      # Give the Lambda function an API Gateway event
+      # (Optional) API Gateway event
       Events:
-        HelloWorld:
+        GetBatteryDataApi:
           Type: Api
           Properties:
-            Path: /hello
+            Path: /battery_data
             Method: get
 
       # Grant Lambda CRUD permissions on our DynamoDB table
@@ -64,17 +64,17 @@ Resources:
           BATTERY_TABLE_NAME: !Ref BatteryDataTable
 
 Outputs:
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
+  BatteryDataApi:
+    Description: API Gateway endpoint URL for Prod stage
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
 
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value: !GetAtt HelloWorldFunction.Arn
+  BatteryDataFunctionArn:
+    Description: Battery Data Lambda Function ARN
+    Value: !GetAtt BatteryDataFunction.Arn
 
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  BatteryDataFunctionIamRole:
+    Description: Implicit IAM Role created for Battery Data function
+    Value: !GetAtt BatteryDataFunctionRole.Arn
 
   BatteryTableName:
     Description: "Name of the DynamoDB Table for battery data"
