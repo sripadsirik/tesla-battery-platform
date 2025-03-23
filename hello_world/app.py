@@ -12,8 +12,6 @@ def get_dynamodb_client():
                               region_name='us-east-2',
                               aws_access_key_id='dummy',
                               aws_secret_access_key='dummy')
-    print("Using remote AWS DynamoDB")
-    return boto3.resource('dynamodb', region_name='us-east-2')
 
 
 
