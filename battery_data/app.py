@@ -5,22 +5,17 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 def get_dynamodb_client():
-    """
-    Return a DynamoDB resource connected to local or AWS, depending on environment.
-    """
     if 'AWS_SAM_LOCAL' in os.environ:
         print("Using DynamoDB Local endpoint")
         return boto3.resource(
             'dynamodb',
-            endpoint_url='http://host.docker.internal:8000',  # Using host.docker.internal
+            endpoint_url='http://host.docker.internal:8000',
             region_name='us-east-2',
             aws_access_key_id='dummy',
             aws_secret_access_key='dummy'
         )
     print("Using remote AWS DynamoDB")
     return boto3.resource('dynamodb', region_name='us-east-2')
-
-
 
 dynamodb = get_dynamodb_client()
 
@@ -42,14 +37,16 @@ def lambda_handler(event, context):
         state_of_charge = body.get("state_of_charge", 50.0)
         temperature = body.get("temperature", 25.0)
         voltage = body.get("voltage", 3.7)
+        state = body.get("state", "unknown")  # Get the state
 
-        # DynamoDB needs numeric fields as Decimal
+        # Convert numeric fields to Decimal for DynamoDB
         item = {
             "battery_id": battery_id,
             "timestamp": timestamp,
             "state_of_charge": Decimal(str(state_of_charge)),
             "temperature": Decimal(str(temperature)),
-            "voltage": Decimal(str(voltage))
+            "voltage": Decimal(str(voltage)),
+            "state": state  # Store the state
         }
 
         table.put_item(Item=item)
