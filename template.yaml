@@ -51,7 +51,7 @@ Resources:
           Type: Api
           Properties:
             Path: /battery_data
-            Method: get
+            Method: post
 
       # Grant Lambda CRUD permissions on our DynamoDB table
       Policies:
